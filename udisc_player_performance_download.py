@@ -16,8 +16,9 @@ options = Options()
 options.add_argument('--headless')
 options.add_argument("--log-level=3")
 
-# Note other webdrivers use alternate xpaths to the same data. Geckodriver (Firefox) and Opera
-# seemed to work consistently, but Edge was confirmed to have different paths.
+# Note other webdrivers use alternate xpaths to the same data.
+# Geckodriver (Firefox) and Opera seemed to work consistently,
+# but Edge was confirmed to have different paths.
 
 # Change to local webdriver file: https://sites.google.com/a/chromium.org/chromedriver/downloads
 ChromeDriver = webdriver.Chrome('C:/Users/Ryan/Downloads/'
@@ -120,22 +121,23 @@ def scrape_hole_data(driver, card_round_titles, round_card_number, x):
                                                 'C2 Putting',
                                                 'Throw in Distance',
                                                 'OB_Penalty'})
-    for i in range(len(card_round_titles)):
-        card_hole_count = scrape_card_hole_count(driver, i, x)
+    for index, round_title in range(len(card_round_titles)):
+        card_hole_count = scrape_card_hole_count(driver, index, x)
         for j in range(1, len(card_hole_count)):
-            hole_shots_val = scrape_hole_shots(driver, i, j, x)
-            hole_driving_val = scrape_hole_driving(driver, i, j, x)
-            hole_CIR_val = scrape_hole_CIR(driver, i, j, x)
-            hole_scramble_val = scrape_hole_scramble(driver, i, j, x)
-            C1X_putting_val = scrape_hole_C1X_putting(driver, i, j, x)
-            C2_putting_val = scrape_hole_C2_putting(driver, i, j, x)
-            throw_in_dist_val = scrape_hole_throw_in_distance(driver, i, j, x)
-            OB_penalty_val = scrape_hole_OB_penalty(driver, i, j, x)
-            R_n_H_string = 'R'+str(len(card_round_titles)-i)+'_H'+str(j)
+            hole_shots_val = scrape_hole_shots(driver, index, j, x)
+            hole_driving_val = scrape_hole_driving(driver, index, j, x)
+            hole_CIR_val = scrape_hole_CIR(driver, index, j, x)
+            hole_scramble_val = scrape_hole_scramble(driver, index, j, x)
+            C1X_putting_val = scrape_hole_C1X_putting(driver, index, j, x)
+            C2_putting_val = scrape_hole_C2_putting(driver, index, j, x)
+            throw_in_dist_val = scrape_hole_throw_in_distance(driver, index,
+                                                              j, x)
+            OB_penalty_val = scrape_hole_OB_penalty(driver, index, j, x)
+            R_n_H_string = 'R'+str(len(card_round_titles)-index)+'_H'+str(j)
             hole_performance = pd.DataFrame({'player_link': x,
                                              'Round & Hole': R_n_H_string,
-                                             'Round Course': card_round_titles[i].text,
-                                             'Round Card': round_card_number[i].text,
+                                             'Round Course': round_title.text,
+                                             'Round Card': round_card_number[index].text,
                                              'Shots': hole_shots_val,
                                              'Driving': hole_driving_val,
                                              'CIR': hole_CIR_val,
@@ -143,8 +145,10 @@ def scrape_hole_data(driver, card_round_titles, round_card_number, x):
                                              'C1X Putting': C1X_putting_val,
                                              'C2 Putting': C2_putting_val,
                                              'Throw in Distance': throw_in_dist_val,
-                                             'OB_Penalty': OB_penalty_val}, index=[0])
-            tourney_performance = tourney_performance.append(hole_performance, ignore_index=True)
+                                             'OB_Penalty': OB_penalty_val},
+                                            index=[0])
+            tourney_performance = tourney_performance.append(hole_performance,
+                                                             ignore_index=True)
     print(f'Data scraped for {x}.')
     return(tourney_performance)
 

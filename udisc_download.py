@@ -14,15 +14,9 @@ from selenium.common.exceptions import StaleElementReferenceException
 import pandas as pd
 
 options = Options()
-# options.add_argument('--headless')
-# options.add_argument("--log-level=3")
 
-# start = time.perf_counter()
 driver = webdriver.Chrome('C:/Users/Ryan/Downloads/'
                           'chromedriver_win32/chromedriver.exe', options=options)
-# OperaDriver = webdriver.Opera(executable_path='C:/Users/Ryan/Downloads/operadriver_win32/'
-#                               'operadriver_win32/operadriver.exe', options=options)
-# EdgeDriver = webdriver.Edge('C:/Users/Ryan/Downloads/edgedriver_win64/msedgedriver.exe')
 
 # Scrape tourney info for each year
 tourney_data = pd.DataFrame(columns={'year',
@@ -78,18 +72,12 @@ for x in years:
     except Exception as e:
         print('Exception or error raised in year-level scraper for ' + x)
         raise e
-        continue
     tourney_data = tourney_data.append(tourney_data_temp1)
-
-# duration = time.perf_counter() - start
-# print('Time to complete: '+str(duration))
 
 tourney_data.reset_index(drop=True, inplace=True)
 
 # Export tourney_data in case of system crash
 tourney_data.to_csv('data/udisc_tourney_data_all_years.csv', index=False)
-
-# start = time.perf_counter()
 
 # Scrape player info from each tournament
 player_data = pd.DataFrame(columns={'player_name',
@@ -99,20 +87,20 @@ player_data = pd.DataFrame(columns={'player_name',
                                     'tourney_round_count',
                                     'tourney_link'})
 
-tourney_url_caps = [['male', '?t=playerStats&stats=all&d=MPO'],
-                    ['female', '?t=playerStats&stats=all&d=FPO']]
-for x in tourney_data['tourney_link']:
-    if x == 'None':
+tourney_url_caps = ['?t=playerStats&stats=all&d=MPO',
+                    '?t=playerStats&stats=all&d=FPO']
+for link in tourney_data['tourney_link']:
+    if link == 'None':
         player_data_temp = pd.DataFrame({'player_name': 'None',
                                          'player_gender': 'None',
                                          'player_finishing_place': 'None',
                                          'player_link': 'None',
                                          'tourney_round_count': 0,
-                                         'tourney_link': x}, index=[0])
+                                         'tourney_link': link}, index=[0])
         player_data = player_data.append(player_data_temp)
     else:
-        for y in range(len(tourney_url_caps)):
-            driver.get(x + tourney_url_caps[y][1])
+        for url_cap in tourney_url_caps:
+            driver.get(x + url_cap)
             try:
                 element = WebDriverWait(driver, 10).until(
                     EC.presence_of_all_elements_located((By.XPATH,
@@ -134,24 +122,22 @@ for x in tourney_data['tourney_link']:
                         pass
                 tourney_round_counter = (driver.
                                          find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/div[1]/div[1]/div/div[2]/div[4]/div[2]/button'))
-                for i in range(len(player_info_temp)):
-                    player_data_temp = pd.DataFrame({'player_name': player_info_temp[i].text,
+                for index, player_info in enumerate(player_info_temp):
+                    player_data_temp = pd.DataFrame({'player_name': player_info.text,
                                                      'player_gender': tourney_url_caps[y][0],
-                                                     'player_finishing_place': player_finish_list[i],
-                                                     'player_link': (player_info_temp[i].
+                                                     'player_finishing_place': player_finish_list[index],
+                                                     'player_link': (player_info.
                                                                      get_attribute('href')),
                                                      'tourney_round_count': len(tourney_round_counter),
-                                                     'tourney_link': x}, index=[0])
+                                                     'tourney_link': link}, index=[0])
                     player_data = player_data.append(player_data_temp)
             except Exception as e:
-                print('Exception or error raised in tourney-level scraper for ' + x)
+                print('Exception or error raised in tourney-level scraper for ' + link)
                 print(e)
                 continue
-# print(player_data)
-# duration = time.perf_counter() - start
-# print('Time to complete: '+str(duration))
 
-# Kept getting duplicates, could not figure out why... bailed and removed duplicates after scrape
+# Kept getting duplicates, could not figure out why...
+# bailed and removed duplicates after scrape
 player_data.drop_duplicates(inplace=True)
 player_data.reset_index(drop=True, inplace=True)
 tourney_data = tourney_data.set_index(keys=['tourney_link'])
@@ -184,7 +170,7 @@ performance_data = pd.DataFrame(columns={'player_link',
 iterations = int(len(tourney_player_data)/300.0)+1
 
 for i in range(iterations):
-    
+
     # Scrape player round cards for each tourney
     for x in tourney_player_data['player_link'][:300*(i+1)]:
         tourney_performance = pd.DataFrame(columns={'player_link',
@@ -220,13 +206,17 @@ for i in range(iterations):
                                                         'div[3]/div[3]/div/div/div[1]/div[1]/a'))
             for i in range(len(card_round_titles)):
                 card_hole_count = (driver.
-                                   find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/div[3]/div[3]/div['+str(i+1)+']/div/div[2]/div[1]/div/div/div/div[1]'))
+                                   find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/div[3]/div[3]/div[' +
+                                                          str(i+1) +
+                                                          ']/div/div[2]/div[1]/div/div/div/div[1]'))
                 for j in range(1, len(card_hole_count)):
                     hole_shots = (driver.
-                                  find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/'
-                                                         'div[3]/div[3]/div['+str(i+1)+']/div/'
-                                                         'div[2]/div[2]/div/div[1]/div['+str(j+1)+']'))
-                    
+                                  find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/div[3]/div[3]/div[' +
+                                                         str(i+1) +
+                                                         ']/div/div[2]/div[2]/div/div[1]/div[' +
+                                                         str(j+1) +
+                                                         ']'))
+
                     if not hole_shots:
                         hole_shots_val = None
                     elif hole_shots[0].text == '-':
@@ -234,27 +224,31 @@ for i in range(iterations):
                     else:
                         hole_shots_val = hole_shots[0].text
                     hole_driving = (driver.
-                                    find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/'
-                                                           'div[3]/div[3]/div['+str(i+1)+']/div/'
-                                                           'div[2]/div[2]/div/div[2]/div[1]/div['+str(j+1)+']/i'))
+                                    find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/div[3]/div[3]/div[' +
+                                                           str(i+1) +
+                                                           ']/div/div[2]/div[2]/div/div[2]/div[1]/div[' +
+                                                           str(j+1) +
+                                                           ']/i'))
                     if not hole_driving:
                         hole_driving_val = None
                     else:
                         hole_driving_val = hole_driving[0].get_attribute('title')
                     hole_CIR = (driver.
-                                find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/'
-                                                       'div[3]/div[3]/div['+str(i+1)+']/div/'
-                                                       'div[2]/div[2]/div/div[2]/div[2]/'
-                                                       'div['+str(j+1)+']/i'))
+                                find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/div[3]/div[3]/div[' +
+                                                       str(i+1) +
+                                                       ']/div/div[2]/div[2]/div/div[2]/div[2]/div[' +
+                                                       str(j+1) +
+                                                       ']/i'))
                     if not hole_CIR:
                         hole_CIR_val = None
                     else:
                         hole_CIR_val = hole_CIR[0].get_attribute('title')
                     hole_scramble = (driver.
-                                     find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/'
-                                                            'div[3]/div[3]/div['+str(i+1)+']/div/'
-                                                            'div[2]/div[2]/div/div[2]/div[3]/'
-                                                            'div['+str(j+1)+']/i'))
+                                     find_elements_by_xpath('//*[@id="react-root"]/div/div[2]/div[3]/div[3]/div[' +
+                                                            str(i+1) +
+                                                            ']/div/div[2]/div[2]/div/div[2]/div[3]/div[' +
+                                                            str(j+1) +
+                                                            ']/i'))
                     if not hole_scramble:
                         hole_scramble_val = None
                     else:
@@ -320,10 +314,9 @@ for i in range(iterations):
                         tourney_performance[col] = tourney_performance[col].astype('category')
                     tourney_performance['OB_Penalty'] = tourney_performance['OB_Penalty'].astype('bool')
             performance_data = performance_data.append(tourney_performance, ignore_index=True)
-        except:
-            raise Exception
+        except Exception:
             print('Exception or error in player-level scraper raised for ' + x)
-            continue
+            raise Exception
     filename = 'data/udisc_tourney_performance_' + str(i+1)
     performance_data.to_csv(filename, index=False)
 
